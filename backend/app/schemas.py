@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 from datetime import datetime
 
 # User Schemas
@@ -24,7 +24,7 @@ class MovieBase(BaseModel):
     title: str
     genre: str
     duration: int
-    rating: str
+    rating: int = Field(ge=1,le=10)
 
 class MovieCreate(MovieBase):
     pass
@@ -52,6 +52,7 @@ class BookingResponse(BookingBase):
     user_id: int
     status: str
     created_at: datetime
+    movie: MovieBase
     
     class Config:
         from_attributes = True

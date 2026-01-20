@@ -23,7 +23,8 @@ class Movie(Base):
     duration = Column(Integer, nullable=False)
     rating = Column(String, nullable=False)
     
-    bookings = relationship("Booking", back_populates="movie")
+    # bookings = relationship("Booking", back_populates="movie")
+    bookings = relationship("Booking", cascade="all, delete-orphan")
 
 class Booking(Base):
     __tablename__ = "bookings"

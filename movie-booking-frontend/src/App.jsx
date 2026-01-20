@@ -18,12 +18,13 @@ function App() {
   const [movieDuration, setMovieDuration] = useState('');
   const [movieRating, setMovieRating] = useState('');
 
-  // Booking form
   const [selectedMovie, setSelectedMovie] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [tickets, setTickets] = useState(1);
 
-  // Login function
+  const [currentPage, setCurrentPage] = useState(1);
+  const moviesPerPage = 6;
+
   function login() {
     fetch('http://localhost:8080/api/auth/login', {
       method: 'POST',
@@ -62,8 +63,12 @@ function App() {
   function getMovies() {
     fetch('http://localhost:8080/api/movies')
       .then(response => response.json())
-      .then(data => setMovies(data))
+      .then(data => {
+      setMovies(data);
+      setCurrentPage(1);  
+    })
       .catch(error => console.log(error));
+      
   }
 
   // Get bookings
@@ -105,6 +110,27 @@ function App() {
       })
       .catch(error => alert('Error!'));
   }
+
+  // Delete movie (admin only)
+function deleteMovie(movieId) {
+  if (!confirm('Are you sure you want to delete this movie?')) {
+    return;
+  }
+  
+  fetch('http://localhost:8080/api/movies/' + movieId, {
+    method: 'DELETE',
+    headers: { 'x-username': user.username }
+  })
+    .then(response => {
+      if (response.ok || response.status === 204) {
+        alert('Movie deleted successfully!');
+        getMovies();  // Refresh the movie list
+      } else {
+        alert('Failed to delete movie');
+      }
+    })
+    .catch(error => alert('Error deleting movie'));
+}
 
   // Book ticket
   function bookTicket() {
@@ -223,19 +249,27 @@ function App() {
       {user && (
         <div>
           <div className="nav">
-            <button onClick={() => { setPage('movies'); getMovies(); }}>
+            <button 
+            className={page === 'movies' ? 'active':''}
+            onClick={() => { setPage('movies'); getMovies(); }}>
               Movies
             </button>
-            <button onClick={() => setPage('book')}>Book Ticket</button>
-            <button onClick={() => { setPage('bookings'); getBookings(); }}>
+            <button 
+            className={page === 'book' ? 'active':''}
+            onClick={() => setPage('book')}>Book Ticket</button>
+            <button 
+            className={page === 'bookings' ? 'active':''}
+            onClick={() => { setPage('bookings'); getBookings(); }}>
               My Bookings
             </button>
             {user.role === 'admin' && (
-              <button onClick={() => setPage('addMovie')}>Add Movie</button>
+              <button 
+              className={page === 'addMovie' ? 'active':''}
+              onClick={() => setPage('addMovie')}>Add Movie</button>
             )}
           </div>
 
-          {/* Movies Page */}
+          {/* Movies Page
           {page === 'movies' && (
             <div className="content">
               <h2>Available Movies</h2>
@@ -250,7 +284,117 @@ function App() {
                 ))}
               </div>
             </div>
+          )} */}
+          {/* Movies Page */}
+{/* Movies Page */}
+{page === 'movies' && (
+  <div className="content">
+    <h2>Available Movies</h2>
+    
+    {(() => {
+      const indexOfLastMovie = currentPage * moviesPerPage;
+      const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
+      const currentMovies = movies.slice(indexOfFirstMovie, indexOfLastMovie);
+      const totalPages = Math.ceil(movies.length / moviesPerPage);
+      
+      return (
+        <>
+          <div className="movie-grid">
+            {currentMovies.map((movie) => (
+              <div key={movie.id} className="movie-card">
+                <h3>{movie.title}</h3>
+                <p><strong>Genre:</strong> {movie.genre}</p>
+                <p><strong>Duration:</strong> {movie.duration} min</p>
+                <p><strong>Rating:</strong> {movie.rating}</p>
+                
+                {user.role === 'admin' && (
+                  <button 
+                    onClick={() => deleteMovie(movie.id)}
+                    style={{
+                      backgroundColor: 'red',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 15px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      marginTop: '10px'
+                    }}
+                  >
+                    Delete Movie
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          {totalPages > 1 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '30px'
+            }}>
+              <button
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: currentPage === 1 ? '#ccc' : '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Previous
+              </button>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  style={{
+                    padding: '10px 15px',
+                    backgroundColor: currentPage === pageNum ? '#007bff' : 'white',
+                    color: currentPage === pageNum ? 'white' : '#007bff',
+                    border: '2px solid #007bff',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: currentPage === pageNum ? 'bold' : 'normal'
+                  }}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              
+              {/* Next Button */}
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: currentPage === totalPages ? '#ccc' : '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Next
+              </button>
+              
+              {/* Page Info */}
+              <span style={{ marginLeft: '10px', color: '#666' }}>
+                Page {currentPage} of {totalPages} ({movies.length} movies total)
+              </span>
+            </div>
           )}
+        </>
+      );
+    })()}
+  </div>
+)}
 
           {/* Book Ticket Page */}
           {page === 'book' && (
@@ -291,10 +435,12 @@ function App() {
               {bookings.length === 0 ? (
                 <p>No bookings yet.</p>
               ) : (
-                <div>
+                <div className='movie-grid'>
                   {bookings.map((booking) => (
                     <div key={booking.id} className="booking-card">
                       <p><strong>Movie ID:</strong> {booking.movie_id}</p>
+                      <p><strong>Movie Title:</strong> {booking.movie.title}</p>
+
                       <p><strong>Customer:</strong> {booking.customer_name}</p>
                       <p><strong>Tickets:</strong> {booking.tickets}</p>
                       <p><strong>Status:</strong> {booking.status}</p>
