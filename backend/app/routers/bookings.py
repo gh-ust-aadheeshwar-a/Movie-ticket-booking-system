@@ -21,6 +21,7 @@ def create_booking(
     db_booking = Booking(
         **booking.dict(),
         user_id=current_user.id,
+
         status="Booked"
     )
     db.add(db_booking)
